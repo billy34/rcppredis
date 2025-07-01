@@ -695,7 +695,7 @@ public:
         freeReplyObject(reply);
         return(res);
     }
-
+    
     // redis "append to list" -- without R serialization
     // as above: pure vector, no attributes, ...
     std::string listRPush(std::string key, Rcpp::NumericVector x) {
@@ -822,6 +822,54 @@ public:
     }
 
     // GCO ADDITIONS ----
+    
+    // redis right pop from string list -- without R serialization
+    std::string RPopString(std::string key) {
+      redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "RPOP %s", key.c_str()));
+      
+      std::string res;
+      if (replyTypeToInteger(reply) == replyNil_t) {
+        res = "(nil)";
+      } else {
+        checkReplyType(reply, replyString_t); // ensure we got string
+        res = reply->str;
+      }
+      freeReplyObject(reply);
+      return(res);
+    }
+
+    // redis left pop from string list -- without R serialization
+    std::string LPopString(std::string key) {
+      redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "LPOP %s", key.c_str()));
+      
+      std::string res;
+      if (replyTypeToInteger(reply) == replyNil_t) {
+        res = "(nil)";
+      } else {
+        checkReplyType(reply, replyString_t); // ensure we got string
+        res = reply->str;
+      }
+      freeReplyObject(reply);
+      return(res);
+    }
+        
+    // redis left push string to list
+    std::string LPushString(std::string key, std::string value) {
+      redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "LPUSH %s %s", key.c_str(), value.c_str()));
+      //std::string res(reply->str);
+      std::string res = "";
+      freeReplyObject(reply);
+      return(res);
+    }
+
+    // redis right push string to list
+    std::string RPushString(std::string key, std::string value) {
+      redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "RPUSH %s %s", key.c_str(), value.c_str()));
+      //std::string res(reply->str);
+      std::string res = "";
+      freeReplyObject(reply);
+      return(res);
+    }
     
     // redis auth -- authentification using password
     std::string auth(std::string password) {
@@ -1096,6 +1144,12 @@ RCPP_MODULE(Redis) {
 
         .method("auth", &Redis::auth, "Authenticate using password")
         .method("auth2", &Redis::auth2, "Authenticate using user and password")
+        .method("lrangeStrings",  &Redis::listRangeAsStrings,   "runs 'LRANGE key start end' for list, returns string vector")
+        .method("rpopString", &Redis::RPopString,     "pops and return first R object from list")
+        .method("lpushString",    &Redis::LPushString,    "prepends R object from left side of list")
+        .method("lpopString", &Redis::LPopString,     "pops and return last R object from list")
+        .method("rpushString",    &Redis::RPushString,    "prepends R object from right side of list")
+
 #ifdef HAVE_MSGPACK
         .method("msgPackMatrix",  &Redis::msgPackMatrix,  "gets msgPack'ed data as Matrix")
         .method("msgPackZMatrix", &Redis::msgPackZMatrix, "gets msgPack'ed sorted set as Matrix")
