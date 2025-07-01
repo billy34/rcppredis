@@ -821,6 +821,36 @@ public:
         return(x);
     }
 
+    // GCO ADDITIONS ----
+    
+    // redis auth -- authentification using password
+    std::string auth(std::string password) {
+      
+      // uses binary protocol, see hiredis doc at github
+      redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "AUTH %s", password.c_str()));
+      if (reply->type == REDIS_REPLY_ERROR) {
+        freeReplyObject(reply);
+        Rcpp::stop(std::string("Redis authentication error."));
+      }
+      freeReplyObject(reply);
+      std::string res = "OK";
+      return(res);
+    }
+    
+    // redis auth -- authentification using user and password
+    std::string auth2(std::string user, std::string password) {
+      
+      // uses binary protocol, see hiredis doc at github
+      redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "AUTH %s %s", user.c_str(), password.c_str()));
+      if (reply->type == REDIS_REPLY_ERROR) {
+        freeReplyObject(reply);
+        Rcpp::stop(std::string("Redis authentication error."));
+      }
+      freeReplyObject(reply);
+      std::string res = "OK";
+      return(res);
+    }
+    
 #ifdef HAVE_MSGPACK
     Rcpp::NumericMatrix msgPackMatrix(std::string key, int start, int end) {
         redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "LRANGE %s %d %d", key.c_str(), start, end));
@@ -1062,6 +1092,10 @@ RCPP_MODULE(Redis) {
         .method("unsubscribe", &Redis::subscribe,  "runs 'UNSUBSCRIBE channel(s)', unsubscribe one or more channels specified as a character vector")
         .method("listen", &Redis::listen,  "listen for a redis pub/sub message (blocking)")
 
+        // GCO ADDITIONS ----
+
+        .method("auth", &Redis::auth, "Authenticate using password")
+        .method("auth2", &Redis::auth2, "Authenticate using user and password")
 #ifdef HAVE_MSGPACK
         .method("msgPackMatrix",  &Redis::msgPackMatrix,  "gets msgPack'ed data as Matrix")
         .method("msgPackZMatrix", &Redis::msgPackZMatrix, "gets msgPack'ed sorted set as Matrix")
