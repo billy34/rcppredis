@@ -899,6 +899,20 @@ public:
       return(res);
     }
     
+    std::string info() {
+      redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "INFO"));
+      
+      if (reply->type == REDIS_REPLY_ERROR) {
+        freeReplyObject(reply);
+        Rcpp::stop(std::string("Not authorized."));
+      } else {
+        checkReplyType(reply, replyString_t); // ensure we got string
+        std::string res = reply->str;
+        freeReplyObject(reply);
+        return(res);
+      }
+    }
+    
 #ifdef HAVE_MSGPACK
     Rcpp::NumericMatrix msgPackMatrix(std::string key, int start, int end) {
         redisReply *reply = static_cast<redisReply*>(redisCommandNULLSafe(prc_, "LRANGE %s %d %d", key.c_str(), start, end));
@@ -1144,6 +1158,7 @@ RCPP_MODULE(Redis) {
 
         .method("auth", &Redis::auth, "Authenticate using password")
         .method("auth2", &Redis::auth2, "Authenticate using user and password")
+        .method("info", &Redis::info, "Get server informations")
         .method("lrangeStrings",  &Redis::listRangeAsStrings,   "runs 'LRANGE key start end' for list, returns string vector")
         .method("rpopString", &Redis::RPopString,     "pops and return first R object from list")
         .method("lpushString",    &Redis::LPushString,    "prepends R object from left side of list")
